@@ -3,8 +3,10 @@
 import smbus
 from time import sleep
 import socket
-host = "xxx.xxx.xxx.xxx" #local
-port = 4000 #tcp
+import datetime
+import json
+host = "xxx.xxx.xxx" #local
+port = xxx #tcp
 
 # SHT31D Registers
 bus = smbus.SMBus(1) # 1 = /dev/i2c-1 (port I2C1) 確認済み
@@ -37,13 +39,21 @@ def read_SHT31():
 
 def main():
     init_seq_read_SHT31()
-    for i in range(5): 
+    for i in range(5):
         result = read_SHT31()
-        s_result = str(result)
+        t = datetime.datetime.now()
+        json_temperature = json.dumps({'sensor_name':'SHT31_temperature', 'timestamp':'%s'%t.strftime("%Y-%m-%d %H:%M:%S"), 'data_float':'%s'%(result["temperature"])})
+        json_humidity = json.dumps({'sensor_name':'SHT31_humidity', 'timestamp':'%s'%t.strftime("%Y-%m-%d %H:%M:%S"), 'data_float':'%s'%(result["humidity"])})
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #オブジェクトの作成をします
         client.connect((host, port)) #これでサーバーに接続します
         #client.send("temperature:", result['temperature'], "humidity:", result['humidity']) #適当なデータを送信します（届く側にわかるように
-        client.send(s_result)
+        client.send(json_temperature)
+        response = client.recv(4096) #レシーブは適当な2の累乗（大きすぎるとダメ）
+        print response
+
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #オブジェクトの作成をします
+        client.connect((host, port)) #これでサーバーに接続します
+        client.send(json_humidity)
         response = client.recv(4096) #レシーブは適当な2の累乗（大きすぎるとダメ）
         print response
         sleep(one_minutes)
